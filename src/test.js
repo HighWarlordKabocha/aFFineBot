@@ -1,5 +1,9 @@
-const { generateAffineKeys } = require('./affineService');
+const { generateAffineKeys, encryptAffine } = require('./affineService');
 
-for (let i = 0; i < 10; i++) {
-    console.log(generateAffineKeys());
-}
+const { a, b } = generateAffineKeys();
+const plaintext = "HELLO";
+const ciphertext = encryptAffine(plaintext, a, b);
+
+console.log(`Affine Keys: A=${a}, B=${b}`);
+console.log(`Plaintext: ${plaintext}`);
+console.log(`Ciphertext: ${ciphertext}`);

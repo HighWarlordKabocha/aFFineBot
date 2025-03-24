@@ -16,9 +16,19 @@ function generateAffineKeys() {
     return { a, b };
 }
 
+function encryptAffine(text, a, b) {
+    return text
+        .toUpperCase()
+        .replace(/[A-Z]/g, (char) => {
+            const x = char.charCodeAt(0) - 65; // Convert 'A'-'Z' to 0-25
+            const encrypted = (a * x + b) % 26; // Apply affine formula
+            return String.fromCharCode(encrypted + 65); // Convert back to letter
+        });
+}
+
 module.exports = {
     generateAffineKeys,
-    encryptAffine: (text, a, b) => {},
+    encryptAffine,
     decryptAffine: (text, a, b) => {},
     isValidGuess: (guess, correct) => {}
 };

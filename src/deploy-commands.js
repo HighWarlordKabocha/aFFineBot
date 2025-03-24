@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 console.log('DISCORD_TOKEN:', process.env.DISCORD_TOKEN ? 'Loaded' : 'Not Loaded');
-console.log('CLIENT_ID:', process.env.CLIENT_ID ? process.env.CLIENT_ID : 'Not Loaded');
-console.log('GUILD_ID:', process.env.GUILD_ID ? process.env.GUILD_ID : 'Not Loaded');
+console.log('CLIENT_ID:', process.env.CLIENT_ID || 'Not Loaded');
+console.log('GUILD_ID:', process.env.GUILD_ID || 'Not Loaded');
 
 const commands = [];
 
@@ -13,8 +13,17 @@ const commands = [];
 const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('Commands.js'));
 
 for (const file of commandFiles) {
-    const command = require(path.join(__dirname, file));
-    commands.push(command.data.toJSON());
+    const commandModule = require(path.join(__dirname, file));
+
+    if (Array.isArray(commandModule)) {
+        for (const command of commandModule) {
+            if (command.data) {
+                commands.push(command.data.toJSON());
+            }
+        }
+    } else if (commandModule.data) {
+        commands.push(commandModule.data.toJSON());
+    }
 }
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);

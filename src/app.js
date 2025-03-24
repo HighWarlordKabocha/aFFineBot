@@ -1,7 +1,7 @@
-require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
@@ -12,8 +12,10 @@ client.commands = new Collection();
 const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('Commands.js'));
 
 for (const file of commandFiles) {
-    const command = require(path.join(__dirname, file));
-    client.commands.set(command.data.name, command);
+    const commands = require(path.join(__dirname, file));
+    for (const command of commands) {
+        client.commands.set(command.data.name, command);
+    }
 }
 
 client.once('ready', () => {

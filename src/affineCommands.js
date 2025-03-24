@@ -1,84 +1,84 @@
 const { SlashCommandBuilder } = require('discord.js');
 const affineService = require('./affineService');
-const fs = require('fs');
 
-// Load Pokémon list for validation
-const pokemonList = fs.readFileSync('./src/wordlists/pokemon.txt', 'utf-8').split('\n').map(line => line.trim());
-const colors = fs.readFileSync('./src/wordlists/color.txt', 'utf-8').split('\n').map(line => line.trim());
-const adjectives = fs.readFileSync('./src/wordlists/adjective.txt', 'utf-8').split('\n').map(line => line.trim());
-const animals = fs.readFileSync('./src/wordlists/animal.txt', 'utf-8').split('\n').map(line => line.trim());
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('affine')
+        .setDescription('Commands for the affine cipher.')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('new')
+                .setDescription('Start a new affine cipher challenge.'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('guess')
+                .setDescription('Guess the ciphered text.')
+                .addStringOption(option =>
+                    option.setName('guess')
+                        .setDescription('Your guess for the ciphered text.')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('cipher')
+                .setDescription('Cipher a given text.')
+                .addStringOption(option =>
+                    option.setName('text')
+                        .setDescription('Text to be ciphered using the affine cipher.')
+                        .setRequired(true))),
+    
+    async execute(interaction) {
+        const subcommand = interaction.options.getSubcommand();
+        const userId = interaction.user.id;
 
-module.exports = [
-    // /affine-new command
-    {
-        data: new SlashCommandBuilder()
-            .setName('affine-new')
-            .setDescription('Starts a new cipher challenge!'),
-
-        async execute(interaction) {
-            const userId = interaction.user.id;
-
-            // Generate random values for 'a' and 'b' for the affine cipher
+        if (subcommand === 'new') {
             const a = affineService.getRandomA();
             const b = affineService.getRandomB();
+            const plainText = affineService.generateRandomPhrase();
+            const cipheredText = affineService.affineEncrypt(plainText, a, b);
 
-            // Pick random words for the color, adjective, and animal
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-            const animal = animals[Math.floor(Math.random() * animals.length)];
-
-            // Create the ciphered text
-            const plainText = `${color}${adjective}${animal}`.toLowerCase();
-
-            // Encrypt the plain text with the affine cipher
-            const cipheredText = affineService.affineEncrypt(plainText, a, b);  // <-- Corrected to affineEncrypt
-
-            // Store the challenge details for the user
+            // Store the challenge for the user
             affineService.startChallenge(userId, a, b, cipheredText, plainText);
 
-            return interaction.reply({
-                content: `🔑 A new cipher challenge has been started! Try to guess the following ciphered text: **${cipheredText.toUpperCase()}**`,
-                ephemeral: true
-            });
+            return interaction.reply(`A new cipher challenge has been started! Try to guess the following ciphered text: **${cipheredText}**`);
         }
-    },
 
-    // /affine-guess command
-    {
-        data: new SlashCommandBuilder()
-            .setName('affine-guess')
-            .setDescription('Guess the ciphered text!')
-            .addStringOption(option =>
-                option.setName('guess')
-                    .setDescription('Your guess for the ciphered text')
-                    .setRequired(true)),
+        if (subcommand === 'guess') {
+            const guess = interaction.options.getString('guess');
+            const challenge = affineService.getChallenge(userId);
 
-        async execute(interaction) {
-            const userId = interaction.user.id;
-            const guess = interaction.options.getString('guess').toLowerCase();
-
-            // Retrieve user's affine cipher challenge
-            const userChallenge = affineService.getChallenge(userId);
-
-            if (!userChallenge) {
-                return interaction.reply({ content: 'You do not have an active cipher challenge. Please start a new one with `/affine-new`.', ephemeral: true });
+            if (!challenge) {
+                return interaction.reply('You don\'t have an active challenge. Start a new one with `/affine new`.');
             }
+
+            const { attempts, plainText } = challenge;
 
             // Check if the guess is correct
-            const decryptedText = affineService.affineDecrypt(userChallenge.cipheredText, userChallenge.a, userChallenge.b);  // <-- Corrected to affineDecrypt
-            if (guess === decryptedText) {
-                return interaction.reply({ content: `✅ Correct! The answer was **${decryptedText.toUpperCase()}**.`, ephemeral: true });
+            if (guess.toLowerCase() === plainText) {
+                affineService.resetChallenge(userId);
+                return interaction.reply('Correct! You have solved the challenge. The challenge has been reset.');
             }
 
-            // If the guess is incorrect, increment attempts and check if they reached max attempts
-            userChallenge.attempts++;
-            if (userChallenge.attempts >= 3) {
-                affineService.resetChallenge(userId); // Reset the challenge after 3 attempts
-                return interaction.reply({ content: `❌ Incorrect guess. You have exceeded the maximum attempts. The correct answer was **${decryptedText.toUpperCase()}**. Your challenge has been reset.`, ephemeral: true });
+            // Incorrect guess
+            const remainingAttempts = 2 - attempts;
+            if (remainingAttempts > 0) {
+                challenge.attempts++;
+                return interaction.reply(`Incorrect guess. You have ${remainingAttempts} attempt(s) left. Try again!`);
             }
 
-            // Inform the user of incorrect guess and remaining attempts
-            return interaction.reply({ content: `❌ Incorrect guess. You have ${3 - userChallenge.attempts} attempt(s) left. Try again!`, ephemeral: true });
+            // Max attempts reached
+            affineService.resetChallenge(userId);
+            return interaction.reply(`Incorrect guess. You have exceeded the maximum attempts. The correct answer was **${plainText.toUpperCase()}**. Your challenge has been reset.`);
         }
-    }
-];
+
+        if (subcommand === 'cipher') {
+            const text = interaction.options.getString('text');
+
+            // Cipher the provided text using a random a and b
+            const a = affineService.getRandomA();
+            const b = affineService.getRandomB();
+            const cipheredText = affineService.affineEncrypt(text, a, b);
+
+            return interaction.reply(`The ciphered text is: **${cipheredText}**`);
+        }
+    },
+};

@@ -1,28 +1,21 @@
-const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+const { Client, GatewayIntentBits, Collection } = require('discord.js');
+require('dotenv').config();  // Load environment variables from the .env file
+const affineCommands = require('./affineCommands');  // Import your commands
 
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
-});
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
-// Load command files dynamically
+// Initialize a collection for storing commands
 client.commands = new Collection();
-const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('Commands.js'));
 
-for (const file of commandFiles) {
-    const commands = require(path.join(__dirname, file)); // Now this should be an array of commands
-    for (const command of commands) { // Iterate over each command in the array
-        client.commands.set(command.data.name, command); // Set each command individually
-    }
-}
+// Add the affine commands directly to the collection
+client.commands.set(affineCommands.data.name, affineCommands);
 
 client.once('ready', () => {
-    console.log(`✅ Logged in as ${client.user.tag}`);
+    console.log('Bot is ready!');
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+// Event for handling commands
+client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
@@ -32,8 +25,9 @@ client.on(Events.InteractionCreate, async interaction => {
         await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        await interaction.reply({ content: '❌ An error occurred while executing the command.', ephemeral: true });
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
     }
 });
 
+// Log in the bot with the token from the .env file
 client.login(process.env.DISCORD_TOKEN);

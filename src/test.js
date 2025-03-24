@@ -18,3 +18,6 @@ console.assert(decryptedText === plaintext, "❌ Decryption failed!");
 console.assert(isValidGuess(correctGuess, plaintext), "❌ Guess validation failed!");
 console.assert(!isValidGuess(wrongGuess, plaintext), "❌ Guess validation failed for incorrect input!");
 console.log("✅ Guess validation test passed!");
+
+const { generateRandomPhrase } = require('./affineService');
+console.log('Generated Phrase:', generateRandomPhrase());

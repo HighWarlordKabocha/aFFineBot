@@ -12,9 +12,9 @@ client.commands = new Collection();
 const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('Commands.js'));
 
 for (const file of commandFiles) {
-    const commands = require(path.join(__dirname, file));
-    for (const command of commands) {
-        client.commands.set(command.data.name, command);
+    const commands = require(path.join(__dirname, file)); // Now this should be an array of commands
+    for (const command of commands) { // Iterate over each command in the array
+        client.commands.set(command.data.name, command); // Set each command individually
     }
 }
 

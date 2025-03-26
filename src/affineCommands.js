@@ -26,10 +26,12 @@ module.exports = {
                         .setDescription('Pokémon name to cipher.')
                         .setRequired(true))),
 
+    // Handle the execution of commands based on the subcommand
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
         const userId = interaction.user.id;
 
+        // Handle the 'new' subcommand: start a new challenge
         if (subcommand === 'new') {
             const a = affineService.getRandomA();
             const b = affineService.getRandomB();
@@ -44,8 +46,9 @@ module.exports = {
             });
         }
 
+        // Handle the 'guess' subcommand: process a guess for the ciphered text
         if (subcommand === 'guess') {
-            const guess = interaction.options.getString('guess');
+            const guess = interaction.options.getString('guess').toLowerCase();  // Convert guess to lowercase
             const challenge = affineService.getChallenge(userId);
 
             if (!challenge) {
@@ -55,7 +58,8 @@ module.exports = {
                 });
             }
 
-            if (guess.toLowerCase() === challenge.plainText) {
+            // Compare the guess with the correct answer (ignoring case)
+            if (guess === challenge.plainText.toLowerCase()) {  // Convert challenge plain text to lowercase
                 affineService.resetChallenge(userId);
                 return interaction.reply({
                     content: `You think my password is ${guess}? ... I suppose you *are* someone I'm supposed to be talking to. I was instructed to give you this passcode: R4di0_W4v3s`,
@@ -63,6 +67,7 @@ module.exports = {
                 });
             }
 
+            // Handle incorrect guesses and track attempts
             challenge.attempts++;
 
             if (challenge.attempts >= 2) {
@@ -74,42 +79,45 @@ module.exports = {
             }
 
             return interaction.reply({
-                content: `You think my password is ${guess}? Wrong! What a ridiculous password... Maybe you typo'ed, so I'll let you try one last time. *zzz*`,
+                content: `You think my password is ${guess}? Wrong again! Try again! (You have ${3 - challenge.attempts} tries left).`,
                 flags: [MessageFlags.Ephemeral]
             });
         }
 
+        // Handle the 'cipher' subcommand: cipher a Pokémon name
         if (subcommand === 'cipher') {
-            const text = interaction.options.getString('text');
+            const text = interaction.options.getString('text').toLowerCase();
+
+            if (!affineService.isValidPokemonName(text)) {
+                return interaction.reply({
+                    content: `${text} is not a valid Pokémon name!`,
+                    flags: [MessageFlags.Ephemeral]
+                });
+            }
+
             const challenge = affineService.getChallenge(userId);
 
             if (!challenge) {
                 return interaction.reply({
-                    content: 'You need to start this challenge with \`/affine new\`, first!',
+                    content: `You haven't started a challenge yet. Use \`/affine new\` to begin.`,
                     flags: [MessageFlags.Ephemeral]
                 });
             }
 
             if (challenge.cipheredUsed) {
                 return interaction.reply({
-                    content: `I've already ciphered a Pokémon name for this challenge. Use \`/affine guess\` to tell me my password.`,
+                    content: `You've already ciphered a Pokémon name. Try guessing the password or restart the challenge with \`/affine new\`.`,
                     flags: [MessageFlags.Ephemeral]
                 });
             }
 
-            if (!affineService.isValidPokemonName(text)) {
-                return interaction.reply({
-                    content: `"${text}" is no Pokémon name *I* recognize!`,
-                    flags: [MessageFlags.Ephemeral]
-                });
-            }
-
-            challenge.cipheredUsed = true;
+            // Cipher the Pokémon name for the user
             const cipheredText = affineService.affineEncrypt(text, challenge.a, challenge.b);
+            challenge.cipheredUsed = true;
             return interaction.reply({
-                content: `You have a ${text}? I'd call it a ${cipheredText}... *man, mod math makes me mad*... Now, use \`/affine guess\` to decipher my password: \`${cipheredText}\``,
+                content: `Your ciphered Pokémon name is: ${cipheredText}`,
                 flags: [MessageFlags.Ephemeral]
             });
         }
-    },
+    }
 };

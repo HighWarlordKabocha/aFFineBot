@@ -20,65 +20,70 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('cipher')
-                .setDescription('Cipher a given text.')
+                .setDescription('Cipher a Pokémon name.')
                 .addStringOption(option =>
                     option.setName('text')
-                        .setDescription('Text to be ciphered using the affine cipher.')
+                        .setDescription('Pokémon name to cipher.')
                         .setRequired(true))),
-    
+
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
         const userId = interaction.user.id;
 
-        if (subcommand === 'new') {
-            const a = affineService.getRandomA();
-            const b = affineService.getRandomB();
-            const plainText = affineService.generateRandomPhrase();
-            const cipheredText = affineService.affineEncrypt(plainText, a, b);
+	if (subcommand === 'new') {
+	    const a = affineService.getRandomA();
+	    const b = affineService.getRandomB();
+	    const plainText = affineService.generateRandomPhrase(); // Use the random phrase generator
 
-            // Store the challenge for the user
-            affineService.startChallenge(userId, a, b, cipheredText, plainText);
+	    console.log(`Generated phrase for user ${userId}: ${plainText}`);
+	    affineService.startChallenge(userId, a, b, plainText);
 
-            return interaction.reply(`A new cipher challenge has been started! Try to guess the following ciphered text: **${cipheredText}**`);
-        }
+	    return interaction.reply('A new cipher challenge has been started! Use `/affine cipher` to encrypt a Pokémon name.');
+	}
 
         if (subcommand === 'guess') {
             const guess = interaction.options.getString('guess');
             const challenge = affineService.getChallenge(userId);
 
             if (!challenge) {
-                return interaction.reply('You don\'t have an active challenge. Start a new one with `/affine new`.');
+                return interaction.reply('You don’t have an active challenge. Start a new one with `/affine new`.');
             }
 
-            const { attempts, plainText } = challenge;
-
-            // Check if the guess is correct
-            if (guess.toLowerCase() === plainText) {
+            if (guess.toLowerCase() === challenge.plainText) {
                 affineService.resetChallenge(userId);
                 return interaction.reply('Correct! You have solved the challenge. The challenge has been reset.');
             }
 
-            // Incorrect guess
-            const remainingAttempts = 2 - attempts;
-            if (remainingAttempts > 0) {
-                challenge.attempts++;
-                return interaction.reply(`Incorrect guess. You have ${remainingAttempts} attempt(s) left. Try again!`);
+            challenge.attempts++;
+
+            if (challenge.attempts >= 2) {
+                affineService.resetChallenge(userId);
+                return interaction.reply(`Incorrect. You have exceeded the maximum attempts. The correct answer was **${challenge.plainText.toUpperCase()}**. Challenge reset.`);
             }
 
-            // Max attempts reached
-            affineService.resetChallenge(userId);
-            return interaction.reply(`Incorrect guess. You have exceeded the maximum attempts. The correct answer was **${plainText.toUpperCase()}**. Your challenge has been reset.`);
+            return interaction.reply(`Incorrect. You have ${2 - challenge.attempts} attempt(s) left.`);
         }
 
         if (subcommand === 'cipher') {
             const text = interaction.options.getString('text');
+            const challenge = affineService.getChallenge(userId);
 
-            // Cipher the provided text using a random a and b
-            const a = affineService.getRandomA();
-            const b = affineService.getRandomB();
-            const cipheredText = affineService.affineEncrypt(text, a, b);
+            if (!challenge) {
+                return interaction.reply('You need to start a challenge first! Use `/affine new`.');
+            }
 
-            return interaction.reply(`The ciphered text is: **${cipheredText}**`);
+            if (challenge.cipheredUsed) {
+                return interaction.reply('You have already ciphered a Pokémon name for this challenge. Use `/affine guess` to solve the challenge.');
+            }
+
+            if (!affineService.isValidPokemonName(text)) {
+                return interaction.reply(`"${text}" is not a valid Pokémon name.`);
+            }
+
+            challenge.cipheredUsed = true;
+            const cipheredText = affineService.affineEncrypt(text, challenge.a, challenge.b);
+
+            return interaction.reply(`The ciphered Pokémon name is: **${cipheredText}**. Now, use \`/affine guess\` to solve the challenge.`);
         }
     },
 };

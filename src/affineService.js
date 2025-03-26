@@ -1,130 +1,121 @@
 const fs = require('fs');
 const path = require('path');
 
-// Create a memory store for user challenges
-const challenges = {};
+// In-memory storage for user challenges
+let challenges = {};
 
-// Function to read a wordlist and pick a random word
-function getRandomWord(filePath) {
-    try {
-        const words = fs.readFileSync(filePath, 'utf-8').split(/\r?\n/).filter(Boolean);
-        return words.length > 0 ? words[Math.floor(Math.random() * words.length)] : null;
-    } catch (error) {
-        console.error(`Error reading ${filePath}:`, error);
-        return null;
-    }
-}
-
-// Function to generate a random cipher challenge phrase
-function generateRandomPhrase() {
-    const wordlistsPath = path.join(__dirname, 'wordlists');
-
-    const color = getRandomWord(path.join(wordlistsPath, 'color.txt'));
-    const adjective = getRandomWord(path.join(wordlistsPath, 'adjective.txt'));
-    const animal = getRandomWord(path.join(wordlistsPath, 'animal.txt'));
-
-    if (!color || !adjective || !animal) {
-        console.error('Error: One of the wordlists is empty or missing words.');
-        return null;
-    }
-
-    return `${color}${adjective}${animal}`.toLowerCase();  // Example: "redswimmingcat"
-}
-
-// Affine cipher encryption logic
-function affineEncrypt(text, a, b) {
-    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-    let encryptedText = '';
-
-    // Handle uppercase letters
-    text = text.toLowerCase();
-
-    for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        if (alphabet.indexOf(char) !== -1) {
-            const index = alphabet.indexOf(char);
-            const encryptedIndex = (a * index + b) % 26;
-            encryptedText += alphabet[encryptedIndex];
-        } else {
-            encryptedText += char; // Non-alphabetic characters remain unchanged
-        }
-    }
-    return encryptedText.toUpperCase(); // Return as uppercase to match the format
-}
-
-// Affine cipher decryption logic
-function affineDecrypt(ciphertext, a, b) {
-    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
-    let decryptedText = '';
-    
-    // Calculate the modular inverse of 'a' mod 26
-    const modInverse = (a, m) => {
-        for (let i = 1; i < m; i++) {
-            if ((a * i) % m === 1) return i;
-        }
-        return null; // Inverse doesn't exist
-    };
-
-    const aInv = modInverse(a, 26);
-    if (aInv === null) {
-        console.error("No modular inverse for 'a'. Decryption not possible.");
-        return null;
-    }
-
-    // Decrypt the message
-    for (let i = 0; i < ciphertext.length; i++) {
-        const char = ciphertext[i].toLowerCase();
-        if (alphabet.indexOf(char) !== -1) {
-            const index = alphabet.indexOf(char);
-            const decryptedIndex = (aInv * (index - b + 26)) % 26;
-            decryptedText += alphabet[decryptedIndex];
-        } else {
-            decryptedText += char; // Non-alphabetic characters remain unchanged
-        }
-    }
-
-    return decryptedText.toUpperCase(); // Return as uppercase to match the format
-}
-
-// Function to generate a random 'a' value for affine cipher
+// Function to get a random 'A' value for the affine cipher
 function getRandomA() {
-    const aValues = [1, 3, 5, 7, 11, 15, 17, 19, 21, 23, 25]; // These are coprime with 26 (for mod 26)
-    return aValues[Math.floor(Math.random() * aValues.length)];
+    return Math.floor(Math.random() * 25) + 1; // Random number between 1 and 25
 }
 
-// Function to generate a random 'b' value for affine cipher
+// Function to get a random 'B' value for the affine cipher
 function getRandomB() {
-    return Math.floor(Math.random() * 26); // Random value between 0 and 25 for 'b'
+    return Math.floor(Math.random() * 25); // Random number between 0 and 25
 }
 
-// Start a new cipher challenge for a user
-function startChallenge(userId, a, b, cipheredText, plainText) {
-    challenges[userId] = {
-        a,
-        b,
-        cipheredText,
-        plainText,
-        attempts: 0
-    };
+// Function to load words from a file
+function loadWordlist(filename) {
+    const filePath = path.join(__dirname, 'wordlists', filename);
+    try {
+        const words = fs.readFileSync(filePath, 'utf-8')
+            .split(/\r?\n/)
+            .map(word => word.trim().toLowerCase())
+            .filter(Boolean);
+        console.log(`Loaded ${words.length} words from ${filename}`);
+        return words;
+    } catch (error) {
+        console.error(`Error loading wordlist ${filename}:`, error);
+        return [];
+    }
 }
 
-// Retrieve the challenge for a user
+// Load wordlists
+const colors = loadWordlist('colors.txt');
+const verbs = loadWordlist('verbs.txt'); // Replacing adjectives with verbs
+const animals = loadWordlist('animals.txt');
+const pokemonNames = loadWordlist('pokemon.txt');
+
+// Function to generate a random challenge phrase
+function generateRandomPhrase() {
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const verb = verbs[Math.floor(Math.random() * verbs.length)];
+    const animal = animals[Math.floor(Math.random() * animals.length)];
+
+    // Create the phrase without the new letters first
+    let phrase = `${color}${verb}${animal}`;
+
+    // Identify the letters already used in the phrase
+    const usedLetters = new Set(phrase.toLowerCase().split('').filter(char => /[a-zA-Z]/.test(char)));
+
+    // List of all letters in the alphabet
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+
+    // Filter out the already used letters
+    const availableLetters = alphabet.filter(letter => !usedLetters.has(letter));
+
+    // Randomly select 3 new letters from the available ones
+    const newLetters = [];
+    for (let i = 0; i < 3; i++) {
+        const randomLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+        newLetters.push(randomLetter);
+        // Remove the letter from availableLetters to avoid duplicates
+        availableLetters.splice(availableLetters.indexOf(randomLetter), 1);
+    }
+
+    // Inject the new letters into random positions in the phrase
+    newLetters.forEach(letter => {
+        const insertPos = Math.floor(Math.random() * (phrase.length + 1));
+        phrase = phrase.slice(0, insertPos) + letter + phrase.slice(insertPos);
+    });
+
+    return phrase;
+}
+
+// Function to check if a word is a valid Pokémon name
+function isValidPokemonName(word) {
+    return pokemonNames.includes(word.toLowerCase());
+}
+
+// Affine cipher encryption
+function affineEncrypt(plainText, a, b) {
+    let cipheredText = '';
+    for (let i = 0; i < plainText.length; i++) {
+        let char = plainText.charAt(i);
+        if (/[a-zA-Z]/.test(char)) {
+            let charCode = char.toLowerCase().charCodeAt(0) - 97;
+            let cipheredCode = (a * charCode + b) % 26;
+            cipheredText += String.fromCharCode(cipheredCode + 97);
+        } else {
+            cipheredText += char; // Keep non-alphabet characters unchanged
+        }
+    }
+    return cipheredText;
+}
+
+// Function to start a challenge for a user
+function startChallenge(userId, a, b, plainText) {
+    const cipheredText = affineEncrypt(plainText, a, b);
+    challenges[userId] = { a, b, cipheredText, plainText, attempts: 0, cipheredUsed: false };
+}
+
+// Function to get the current challenge for a user
 function getChallenge(userId) {
     return challenges[userId];
 }
 
-// Reset a user's challenge
+// Function to reset the challenge for a user
 function resetChallenge(userId) {
     delete challenges[userId];
 }
 
 module.exports = { 
-    generateRandomPhrase, 
-    affineEncrypt, 
-    affineDecrypt, 
     getRandomA, 
-    getRandomB,
-    startChallenge,  // Export the startChallenge function
-    getChallenge,    // Export the getChallenge function
-    resetChallenge   // Export the resetChallenge function
+    getRandomB, 
+    affineEncrypt, 
+    startChallenge, 
+    getChallenge, 
+    resetChallenge, 
+    isValidPokemonName, 
+    generateRandomPhrase 
 };

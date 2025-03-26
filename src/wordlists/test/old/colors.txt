@@ -1,4 +1,5 @@
 amber
+ash
 asphalt
 auburn
 avocado
@@ -47,6 +48,7 @@ green
 heather
 indigo
 ivory
+jet
 khaki
 lime
 magenta
@@ -58,12 +60,14 @@ orange
 pink
 plum
 purple
+red
 rust
 salmon
 sienna
 silver
 snow
 steel
+tan
 teal
 tomato
 violet

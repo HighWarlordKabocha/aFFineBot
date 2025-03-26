@@ -2,15 +2,18 @@ abyssinian
 albatross
 alligator
 angelfish
+ant
 anteater
 antelope
 armadillo
 baboon
 badger
 bandicoot
+bat
 beagle
 bear
 beaver
+bee
 beetle
 bird
 bison
@@ -18,12 +21,15 @@ boar
 bobcat
 bombay
 bongo
+bonobo
+booby
 buffalo
 bulldog
 bullfrog
 butterfly
 camel
 capybara
+cat
 caterpillar
 catfish
 centipede
@@ -37,11 +43,15 @@ chipmunk
 civet
 cockroach
 cougar
+cow
 coyote
 crab
 crane
 cuttlefish
+deer
 dingo
+dodo
+dog
 dolphin
 donkey
 dragon
@@ -50,12 +60,15 @@ drever
 duck
 eagle
 earwig
+eel
 elephant
+emu
 falcon
 ferret
 fish
 flamingo
 flounder
+fox
 frog
 gecko
 gerbil
@@ -82,6 +95,7 @@ hound
 howler monkey
 hummingbird
 hyena
+ibis
 iguana
 jackal
 jaguar
@@ -89,6 +103,7 @@ jellyfish
 kangaroo
 king crab
 kingfisher
+kiwi
 koala
 lemming
 lemur
@@ -96,6 +111,7 @@ leopard
 lion
 lionfish
 lizard
+llama
 lobster
 lynx
 macaque
@@ -124,6 +140,7 @@ orangutan
 oriole
 ostrich
 otter
+owl
 oyster
 panther
 parrot
@@ -131,6 +148,7 @@ peacock
 pelican
 penguin
 pheasant
+pig
 pike
 piranha
 platypus
@@ -142,6 +160,7 @@ puma
 quail
 rabbit
 raccoon
+rat
 rattlesnake
 reindeer
 rhinoceros
@@ -188,4 +207,5 @@ wolfhound
 wolverine
 wombat
 woodpecker
+yak
 zebra
